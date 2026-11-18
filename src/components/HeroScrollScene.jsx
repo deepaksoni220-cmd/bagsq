@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight, RotateCw, Sparkles, ShieldCheck, ChevronRight, Eye, Check } from 'lucide-react';
+import { ArrowRight, RotateCw, Sparkles, ShieldCheck, ChevronRight, Eye, Check, FolderOpen, Folder } from 'lucide-react';
 import { buildLuxuryBag } from '../utils/bag3dBuilder';
 import { PRODUCTS } from '../data/products';
 
@@ -17,6 +17,7 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
   const [activeStage, setActiveStage] = useState(1);
   const [isInteractiveMode, setIsInteractiveMode] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isBagOpen, setIsBagOpen] = useState(false);
 
   // References for Three.js objects
   const sceneRef = useRef(null);
@@ -316,6 +317,31 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
     }
   };
 
+  const handleToggleOpenBag = () => {
+    if (!bagModelRef.current) return;
+    const nextState = !isBagOpen;
+    setIsBagOpen(nextState);
+
+    const flapObj = { val: bagModelRef.current.getFlapProgress() };
+    gsap.to(flapObj, {
+      val: nextState ? 1.0 : 0.0,
+      duration: 1.2,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        bagModelRef.current.setFlapOpenProgress(flapObj.val);
+      }
+    });
+
+    // Gentle forward tilt when opened so user can see inside
+    if (bagModelRef.current.group) {
+      gsap.to(bagModelRef.current.group.rotation, {
+        x: nextState ? 0.38 : 0.12,
+        duration: 1.0,
+        ease: "power2.inOut",
+      });
+    }
+  };
+
   // Interactive 360 Drag-to-Rotate controls
   const handleMouseDown = (e) => {
     isDraggingRef.current = true;
@@ -391,11 +417,15 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
           {/* CTAs */}
           <div className="flex flex-wrap items-center gap-3 md:gap-4 pointer-events-auto">
             <button
-              onClick={() => onAddToCart(activeBag, currentColor)}
-              className="px-6 md:px-8 py-3 md:py-3.5 bg-atelier-cream text-atelier-dark hover:bg-atelier-gold transition-all duration-300 rounded-none text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2.5 md:gap-3 shadow-lg hover:shadow-atelier-gold/20"
+              onClick={handleToggleOpenBag}
+              className={`px-6 md:px-8 py-3 md:py-3.5 transition-all duration-300 rounded-none text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2.5 md:gap-3 shadow-lg ${
+                isBagOpen
+                  ? 'bg-atelier-gold text-atelier-dark shadow-atelier-gold/30'
+                  : 'bg-atelier-cream text-atelier-dark hover:bg-atelier-gold hover:shadow-atelier-gold/20'
+              }`}
             >
-              READ MORE
-              <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              {isBagOpen ? <Folder className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <FolderOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />}
+              <span>{isBagOpen ? 'CLOSE BAG' : 'OPEN BAG'}</span>
             </button>
 
             <button
