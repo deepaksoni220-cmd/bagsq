@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #120d0a;
+  color: #ede3d4;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Luxury Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #120d0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a281e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c97b41;
+}
+
+/* Gold Gradient Text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #f7e7c4 0%, #dfc08a 50%, #9e7f4c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-leather-gradient {
+  background: linear-gradient(135deg, #e4955b 0%, #c97b41 50%, #874921 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* User's Focus Rust Leather Accent (#7b2608) */
+.text-focus-rust {
+  background: linear-gradient(135deg, #ea6e32 0%, #ba4616 45%, #7b2608 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 24px rgba(123, 38, 8, 0.45));
+}
+
+/* Glassmorphism Luxury Card */
+.luxury-glass {
+  background: rgba(24, 18, 14, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(223, 192, 138, 0.15);
+}
+
+.luxury-glass-hover:hover {
+  border-color: rgba(223, 192, 138, 0.35);
+  box-shadow: 0 10px 30px -10px rgba(201, 123, 65, 0.15);
+}
+
+/* Subtle grain overlay */
+.bg-grain {
+  background-image: radial-gradient(rgba(223, 192, 138, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Editorial Serif text formatting */
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.font-script-calligraphy {
+  font-family: 'Italianno', cursive, serif;
+  letter-spacing: 0.02em;
+}
