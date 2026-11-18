@@ -209,7 +209,7 @@ export default function App() {
 
       {/* Floating WhatsApp Message Button */}
       <a
-        href="https://wa.me/?text=Hello%20Atelier%2C%20I%20would%20like%20to%20inquire%20about%20your%20luxury%20leather%20bags."
+        href="https://wa.me/?text=Hello%20Aurevia%2C%20I%20would%20like%20to%20inquire%20about%20your%20luxury%20leather%20bags."
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat on WhatsApp"

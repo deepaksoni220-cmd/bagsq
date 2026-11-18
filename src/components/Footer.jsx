@@ -109,7 +109,7 @@ export default function Footer() {
               Maison
             </h4>
             <p className="text-atelier-sand/80 leading-relaxed mb-4">
-              Atelier Noma S.r.l.<br />
+              Aurevia S.r.l.<br />
               Via dei Tessitori 14<br />
               50123 Firenze, Italia
             </p>
@@ -122,7 +122,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-atelier-border/60 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-atelier-muted font-mono">
           <div>
-            © ATELIER NOMA ESPACE NOVICE FIRENZE. ALL RIGHTS RESERVED.
+            © AUREVIA ESPACE NOVICE FIRENZE. ALL RIGHTS RESERVED.
           </div>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-atelier-cream transition-colors">TERMS OF PATRONAGE</a>

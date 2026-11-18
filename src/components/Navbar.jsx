@@ -91,7 +91,7 @@ export default function Navbar({ cartCount, onOpenCart, onOpenSearch, activePage
             className="group flex flex-col"
           >
             <span className="font-editorial text-2xl md:text-3xl tracking-[0.2em] text-atelier-cream uppercase font-semibold group-hover:text-atelier-gold transition-colors leading-none">
-              ATELIER NOMA
+              AUREVIA
             </span>
             <span className="hidden sm:block text-[8px] uppercase tracking-[0.4em] text-atelier-gold/80 font-mono mt-1 group-hover:text-atelier-cream transition-colors">
               ESPACE NOVICE • FIRENZE
