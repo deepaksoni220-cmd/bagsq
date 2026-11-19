@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, FolderOpen, Folder, Play, Pause, Eye } from 'lucide-react';
 import { PRODUCTS } from '../data/products';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const TOTAL_FRAMES = 47;
 
@@ -26,11 +23,6 @@ const COLOR_PROFILES = {
     overlay: 'rgba(88, 28, 32, 0.28)',
     blend: 'color',
   }, // Oxblood Bordeaux
-  '#3b432a': {
-    filter: 'hue-rotate(55deg) saturate(0.85) brightness(0.82) contrast(1.08)',
-    overlay: 'rgba(59, 67, 42, 0.32)',
-    blend: 'color',
-  }, // Tuscan Olive
 };
 
 export default function MainPage2({ onAddToCart, onOpenQuickView }) {
@@ -41,13 +33,15 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
   const [currentColor, setCurrentColor] = useState(activeBag.colors[0]);
   const currentColorRef = useRef(activeBag.colors[0]);
   currentColorRef.current = currentColor;
-  const [activeStage, setActiveStage] = useState(1);
+
+  const [isBagOpen, setIsBagOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
   const imagesRef = useRef([]);
   const currentFrameIndexRef = useRef(0);
+  const animTweenRef = useRef(null);
 
   // Preload all frames into memory
   useEffect(() => {
@@ -63,7 +57,6 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
         loaded++;
         setLoadedCount(loaded);
         if (loaded === 1) {
-          // Render initial frame as soon as frame 1 arrives
           renderFrame(0);
         }
         if (loaded === TOTAL_FRAMES) {
@@ -75,7 +68,6 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
 
     imagesRef.current = images;
 
-    // Window resize handler to maintain aspect ratio on canvas
     const handleResize = () => {
       renderFrame(currentFrameIndexRef.current);
     };
@@ -83,6 +75,7 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (animTweenRef.current) animTweenRef.current.kill();
     };
   }, []);
 
@@ -116,14 +109,12 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
     let drawW, drawH, drawX, drawY;
 
     if (isMobile) {
-      // On mobile: full edge-to-edge cover to eliminate any gap/black bars
       const scale = Math.max(displayWidth / img.naturalWidth, displayHeight / img.naturalHeight);
       drawW = img.naturalWidth * scale;
       drawH = img.naturalHeight * scale;
       drawX = (displayWidth - drawW) / 2;
       drawY = (displayHeight - drawH) / 2;
     } else {
-      // On desktop: elegant, contained bag proportions (not overly big)
       const maxH = displayHeight * 0.68;
       const maxW = Math.min(displayWidth * 0.65, 750);
       const imgRatio = img.naturalWidth / img.naturalHeight;
@@ -137,7 +128,7 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
       }
 
       drawX = (displayWidth - drawW) / 2;
-      drawY = (displayHeight - drawH) / 2 + 20; // centered with comfortable breathing room
+      drawY = (displayHeight - drawH) / 2 + 20;
     }
 
     // Apply colorway grading if selected
@@ -163,54 +154,66 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
     ctx.restore();
   };
 
-  // ScrollTrigger Setup
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Toggle Open/Close Bag: smoothly plays the sequence forward or backward to open/close
+  const handleToggleOpenBag = () => {
+    if (animTweenRef.current) animTweenRef.current.kill();
 
-    const frameObj = { frame: 0 };
+    const nextState = !isBagOpen;
+    setIsBagOpen(nextState);
+    setIsPlaying(true);
 
-    const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: container,
-        start: 'top top',
-        end: '+=2800',
-        pin: true,
-        scrub: 0.1, // Ultra-responsive immediate scrub
-        anticipatePin: 1,
-        onUpdate: (self) => {
-          const p = self.progress;
-          setScrollProgress(p);
+    const targetFrame = nextState ? TOTAL_FRAMES - 1 : 0;
+    const currentFrame = currentFrameIndexRef.current;
+    const distance = Math.abs(targetFrame - currentFrame);
+    const duration = Math.max(0.6, (distance / TOTAL_FRAMES) * 1.8);
 
-          // Calculate exact frame from 0 to TOTAL_FRAMES - 1
-          const frameIndex = Math.min(
-            TOTAL_FRAMES - 1,
-            Math.max(0, Math.round(p * (TOTAL_FRAMES - 1)))
-          );
+    const progressObj = { frame: currentFrame };
 
-          if (frameIndex !== currentFrameIndexRef.current) {
-            currentFrameIndexRef.current = frameIndex;
-            renderFrame(frameIndex);
-          }
+    animTweenRef.current = gsap.to(progressObj, {
+      frame: targetFrame,
+      duration: duration,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        const f = Math.round(progressObj.frame);
+        if (f !== currentFrameIndexRef.current) {
+          currentFrameIndexRef.current = f;
+          renderFrame(f);
+        }
+      },
+      onComplete: () => {
+        setIsPlaying(false);
+      },
+    });
+  };
 
-          // Active Stage updates
-          if (p < 0.28) {
-            setActiveStage(1);
-          } else if (p < 0.65) {
-            setActiveStage(2);
-          } else if (p < 0.88) {
-            setActiveStage(3);
-          } else {
-            setActiveStage(4);
+  // Continuous Play/Pause toggle
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      if (animTweenRef.current) animTweenRef.current.kill();
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+      const targetFrame = currentFrameIndexRef.current >= TOTAL_FRAMES - 1 ? 0 : TOTAL_FRAMES - 1;
+      const progressObj = { frame: currentFrameIndexRef.current };
+
+      animTweenRef.current = gsap.to(progressObj, {
+        frame: targetFrame,
+        duration: 1.8,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          const f = Math.round(progressObj.frame);
+          if (f !== currentFrameIndexRef.current) {
+            currentFrameIndexRef.current = f;
+            renderFrame(f);
           }
         },
+        onComplete: () => {
+          setIsBagOpen(targetFrame === TOTAL_FRAMES - 1);
+          setIsPlaying(false);
+        },
       });
-    }, container);
-
-    return () => {
-      ctx.revert();
-    };
-  }, [imagesLoaded]);
+    }
+  };
 
   return (
     <div
@@ -223,7 +226,7 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
         <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-atelier-gold/15 blur-[140px]" />
       </div>
 
-      {/* Frame Sequence HTML5 Canvas (60fps scrub) */}
+      {/* Frame Sequence HTML5 Canvas (Button controlled) */}
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
         <canvas
           ref={canvasRef}
@@ -231,14 +234,8 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
         />
       </div>
 
-
-
-      {/* STAGE 1: INTRO TO SCROLL SEQUENCE */}
-      <div
-        className={`absolute inset-0 z-20 flex flex-col justify-start pt-28 sm:pt-32 md:pt-0 md:justify-center px-6 md:px-16 lg:px-24 transition-all duration-700 pointer-events-none ${
-          activeStage === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8 pointer-events-none'
-        }`}
-      >
+      {/* HERO BANNER CONTENT */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-start pt-28 sm:pt-32 md:pt-0 md:justify-center px-6 md:px-16 lg:px-24 pointer-events-none">
         <div className="max-w-xl">
           <h1 className="font-editorial text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-medium tracking-tight text-atelier-cream leading-[0.98] mb-2 sm:mb-4">
             UNFOLD THE CRAFT.
@@ -247,44 +244,45 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
             </span>
           </h1>
 
-          <p className="text-atelier-sand text-xs sm:text-sm md:text-base leading-relaxed mb-4 sm:mb-6 max-w-md font-light">
-            Scroll down to watch every single frame of the handcrafted unboxing sequence with instant, smooth control.
+          <p className="text-atelier-sand text-xs sm:text-sm md:text-base leading-relaxed mb-6 sm:mb-8 max-w-md font-light">
+            Watch the unboxing sequence unfold with instant frame precision. Release the roller buckle and explore the handcrafted interior.
           </p>
+
+          {/* Action Buttons: OPEN BAG / PLAY SEQUENCE */}
+          <div className="flex flex-wrap items-center gap-3 md:gap-4 pointer-events-auto">
+            <button
+              onClick={handleToggleOpenBag}
+              className={`px-6 md:px-8 py-3 md:py-3.5 transition-all duration-300 rounded-none text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2.5 md:gap-3 shadow-lg ${
+                isBagOpen
+                  ? 'bg-atelier-gold text-atelier-dark shadow-atelier-gold/30'
+                  : 'bg-atelier-cream text-atelier-dark hover:bg-atelier-gold hover:shadow-atelier-gold/20'
+              }`}
+            >
+              {isBagOpen ? (
+                <Folder className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              ) : (
+                <FolderOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              )}
+              <span>{isBagOpen ? 'CLOSE BAG' : 'OPEN BAG'}</span>
+            </button>
+
+            <button
+              onClick={handleTogglePlay}
+              className="px-5 md:px-6 py-3 md:py-3.5 border border-atelier-border hover:border-atelier-gold/70 text-atelier-cream hover:text-atelier-gold transition-all duration-300 text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2 backdrop-blur-sm shadow-md"
+            >
+              {isPlaying ? (
+                <Pause className="w-3.5 h-3.5" />
+              ) : (
+                <Play className="w-3.5 h-3.5" />
+              )}
+              <span>{isPlaying ? 'PAUSE' : 'PLAY SEQUENCE'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* STAGE 2: INSIDE UNVEIL CAPTION */}
-      <div
-        className={`absolute inset-x-0 bottom-24 z-20 flex justify-center px-6 transition-all duration-700 pointer-events-none ${
-          activeStage === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-        }`}
-      >
-        <div className="luxury-glass px-6 py-3 border border-atelier-gold/30 rounded-full text-center shadow-xl">
-          <p className="text-atelier-cream text-xs sm:text-sm font-editorial tracking-wide">
-            PRECISION GRAIN &amp; REINFORCED STITCHWORK
-          </p>
-        </div>
-      </div>
-
-      {/* STAGE 3: INTERIOR DETAIL CAPTION */}
-      <div
-        className={`absolute inset-x-0 bottom-24 z-20 flex justify-center px-6 transition-all duration-700 pointer-events-none ${
-          activeStage === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
-        }`}
-      >
-        <div className="luxury-glass px-6 py-3 border border-atelier-gold/30 rounded-full text-center shadow-xl">
-          <p className="text-atelier-cream text-xs sm:text-sm font-editorial tracking-wide">
-            HAND-FINISHED SUEDE &amp; CUSTOM BRASS ROLLER
-          </p>
-        </div>
-      </div>
-
-      {/* STAGE 4: INTERACTIVE CONTROLS & ORDER CTA */}
-      <div
-        className={`absolute inset-x-0 bottom-3 sm:bottom-6 md:bottom-10 z-20 px-3 sm:px-6 md:px-16 transition-all duration-700 ${
-          activeStage === 4 ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-8 pointer-events-none'
-        }`}
-      >
+      {/* BOTTOM CONTROLS & COLORWAYS BAR */}
+      <div className="absolute inset-x-0 bottom-3 sm:bottom-6 md:bottom-10 z-20 px-3 sm:px-6 md:px-16 pointer-events-auto">
         <div className="max-w-4xl mx-auto luxury-glass p-3.5 sm:p-5 md:p-6 border border-atelier-gold/25 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 md:gap-6">
           {/* Left: Product Info */}
           <div className="w-full md:w-auto text-center md:text-left">
