@@ -226,12 +226,22 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
         <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-atelier-gold/15 blur-[140px]" />
       </div>
 
-      {/* Frame Sequence HTML5 Canvas (Button controlled) */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+      {/* Frame Sequence HTML5 Canvas (Direct click on bag to open/close) */}
+      <div
+        onClick={handleToggleOpenBag}
+        className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer pointer-events-auto group"
+        title="Click bag to open or close"
+      >
         <canvas
           ref={canvasRef}
-          className="w-full h-full block drop-shadow-[0_20px_50px_rgba(0,0,0,0.85)]"
+          className="w-full h-full block drop-shadow-[0_20px_50px_rgba(0,0,0,0.85)] transition-transform duration-300 group-hover:scale-[1.01]"
         />
+        {/* Subtle click hint badge */}
+        <div className="absolute bottom-28 md:bottom-32 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity">
+          <span className="px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-atelier-gold/30 text-[10px] md:text-xs font-mono uppercase tracking-widest text-atelier-gold shadow-lg flex items-center gap-1.5">
+            {isBagOpen ? 'Click bag to close' : 'Click bag to open'}
+          </span>
+        </div>
       </div>
 
       {/* HERO BANNER CONTENT */}
@@ -245,27 +255,8 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
           </h1>
 
           <p className="text-atelier-sand text-xs sm:text-sm md:text-base leading-relaxed mb-6 sm:mb-8 max-w-md font-light">
-            Watch the unboxing sequence unfold with instant frame precision. Release the roller buckle and explore the handcrafted interior.
+            Click directly on the bag to watch it open and inspect the handcrafted velvet interior.
           </p>
-
-          {/* Action Buttons: OPEN BAG */}
-          <div className="flex flex-wrap items-center gap-3 md:gap-4 pointer-events-auto">
-            <button
-              onClick={handleToggleOpenBag}
-              className={`px-6 md:px-8 py-3 md:py-3.5 transition-all duration-300 rounded-none text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2.5 md:gap-3 shadow-lg ${
-                isBagOpen
-                  ? 'bg-atelier-gold text-atelier-dark shadow-atelier-gold/30'
-                  : 'bg-atelier-cream text-atelier-dark hover:bg-atelier-gold hover:shadow-atelier-gold/20'
-              }`}
-            >
-              {isBagOpen ? (
-                <Folder className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              ) : (
-                <FolderOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              )}
-              <span>{isBagOpen ? 'CLOSE BAG' : 'OPEN BAG'}</span>
-            </button>
-          </div>
         </div>
       </div>
 

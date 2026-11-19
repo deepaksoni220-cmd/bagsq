@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight, RotateCw, Sparkles, ShieldCheck, ChevronRight, Eye, Check, FolderOpen, Folder } from 'lucide-react';
+import { ArrowRight, RotateCw, Sparkles, ShieldCheck, ChevronRight, Eye, Check } from 'lucide-react';
 import { buildLuxuryBag } from '../utils/bag3dBuilder';
 import { PRODUCTS } from '../data/products';
 
@@ -15,9 +15,14 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
 
   const [currentColor, setCurrentColor] = useState(activeBag.colors[0]);
   const [activeStage, setActiveStage] = useState(1);
+  const activeStageRef = useRef(1);
+  activeStageRef.current = activeStage;
+
   const [isInteractiveMode, setIsInteractiveMode] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isBagOpen, setIsBagOpen] = useState(false);
+  const isBagOpenRef = useRef(false);
+  isBagOpenRef.current = isBagOpen;
 
   // References for Three.js objects
   const sceneRef = useRef(null);
@@ -27,6 +32,10 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
   const isDraggingRef = useRef(false);
   const previousMousePositionRef = useRef({ x: 0, y: 0 });
   const mouseTargetRef = useRef({ x: 0, y: 0 });
+
+  const pointerDownPosRef = useRef({ x: 0, y: 0 });
+  const isPointerDownRef = useRef(false);
+  const isHoveringBagRef = useRef(false);
 
   // WebGL & GSAP Setup
   useEffect(() => {
@@ -319,8 +328,9 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
 
   const handleToggleOpenBag = () => {
     if (!bagModelRef.current) return;
-    const nextState = !isBagOpen;
+    const nextState = !isBagOpenRef.current;
     setIsBagOpen(nextState);
+    isBagOpenRef.current = nextState;
 
     const flapObj = { val: bagModelRef.current.getFlapProgress() };
     gsap.to(flapObj, {
@@ -342,29 +352,70 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
     }
   };
 
-  // Interactive 360 Drag-to-Rotate controls
-  const handleMouseDown = (e) => {
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
+  // Helper to detect if mouse/touch point hits the 3D bag mesh
+  const checkBagHit = (clientX, clientY) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !cameraRef.current || !bagModelRef.current) return false;
+    const rect = canvas.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, cameraRef.current);
+    const intersects = raycaster.intersectObjects(bagModelRef.current.group.children, true);
+    // Ignore ground plane shadow
+    const hits = intersects.filter(hit => hit.object.geometry?.type !== 'PlaneGeometry');
+    return hits.length > 0;
   };
 
-  const handleMouseMoveInteractive = (e) => {
-    if (!isDraggingRef.current || !bagModelRef.current) return;
-    const deltaX = e.clientX - previousMousePositionRef.current.x;
-    const deltaY = e.clientY - previousMousePositionRef.current.y;
-
-    const bag = bagModelRef.current.group;
-    bag.rotation.y += deltaX * 0.008;
-    bag.rotation.x += deltaY * 0.005;
-
-    // Clamping vertical tilt so it doesn't flip
-    bag.rotation.x = Math.max(-0.6, Math.min(0.6, bag.rotation.x));
-
-    previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
+  // Pointer interactions (Hover cursor, tap/click on bag to open, and stage 4 360-drag)
+  const handlePointerDown = (e) => {
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
+    isPointerDownRef.current = true;
+    if (activeStageRef.current === 4) {
+      isDraggingRef.current = true;
+      setIsDragging(true);
+      previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
+    }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerMove = (e) => {
+    if (activeStageRef.current === 4 && isDraggingRef.current && bagModelRef.current) {
+      const deltaX = e.clientX - previousMousePositionRef.current.x;
+      const deltaY = e.clientY - previousMousePositionRef.current.y;
+      const bag = bagModelRef.current.group;
+      bag.rotation.y += deltaX * 0.008;
+      bag.rotation.x += deltaY * 0.005;
+      bag.rotation.x = Math.max(-0.6, Math.min(0.6, bag.rotation.x));
+      previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    // Check if cursor is hovering over the 3D bag
+    const isHit = checkBagHit(e.clientX, e.clientY);
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = isHit
+        ? 'pointer'
+        : (activeStageRef.current === 4 ? 'grab' : 'default');
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (isPointerDownRef.current) {
+      const dx = e.clientX - pointerDownPosRef.current.x;
+      const dy = e.clientY - pointerDownPosRef.current.y;
+      const dist = Math.hypot(dx, dy);
+
+      // If minimal pointer travel (< 10px), treat as tap/click on the bag
+      if (dist < 10) {
+        if (checkBagHit(e.clientX, e.clientY)) {
+          handleToggleOpenBag();
+        }
+      }
+    }
+    isPointerDownRef.current = false;
     isDraggingRef.current = false;
     setIsDragging(false);
   };
@@ -384,14 +435,17 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
         <div className="absolute inset-0 bg-grain opacity-40" />
       </div>
 
-      {/* 3D WebGL Canvas Layer */}
-      <div
-        className={`absolute inset-0 z-10 ${activeStage === 4 ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'}`}
-        onMouseDown={activeStage === 4 ? handleMouseDown : undefined}
-        onMouseMove={activeStage === 4 ? handleMouseMoveInteractive : undefined}
-        onMouseUp={activeStage === 4 ? handleMouseUp : undefined}
-      >
-        <canvas ref={canvasRef} className="w-full h-full block" />
+      {/* 3D WebGL Canvas Layer (Click directly on bag to open/close) */}
+      <div className="absolute inset-0 z-10 pointer-events-auto">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full block"
+          style={{ touchAction: activeStage === 4 ? 'none' : 'pan-y' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          title="Click bag to open or close"
+        />
       </div>
 
       {/* STAGE 1: HERO VIEW — Exactly matches user's screenshot */}
@@ -417,27 +471,39 @@ export default function HeroScrollScene({ onAddToCart, onOpenQuickView }) {
           {/* CTAs */}
           <div className="flex flex-wrap items-center gap-3 md:gap-4 pointer-events-auto">
             <button
-              onClick={handleToggleOpenBag}
-              className={`px-6 md:px-8 py-3 md:py-3.5 transition-all duration-300 rounded-none text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2.5 md:gap-3 shadow-lg ${
-                isBagOpen
-                  ? 'bg-atelier-gold text-atelier-dark shadow-atelier-gold/30'
-                  : 'bg-atelier-cream text-atelier-dark hover:bg-atelier-gold hover:shadow-atelier-gold/20'
-              }`}
+              onClick={() => onOpenQuickView(activeBag)}
+              className="px-6 md:px-8 py-3 md:py-3.5 bg-atelier-cream text-atelier-dark hover:bg-atelier-gold transition-all duration-300 text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2.5 shadow-lg"
             >
-              {isBagOpen ? <Folder className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <FolderOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />}
-              <span>{isBagOpen ? 'CLOSE BAG' : 'OPEN BAG'}</span>
+              <Eye className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              QUICK VIEW
             </button>
 
             <button
-              onClick={() => onOpenQuickView(activeBag)}
+              onClick={() => {
+                const target = document.getElementById('collection');
+                if (target) {
+                  target.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  const targetScroll = window.innerHeight * 2.8;
+                  window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+                }
+              }}
               className="px-5 md:px-6 py-3 md:py-3.5 border border-atelier-border hover:border-atelier-gold/70 text-atelier-cream hover:text-atelier-gold transition-all duration-300 text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2 backdrop-blur-sm"
             >
-              <Eye className="w-3.5 h-3.5" />
-              QUICK VIEW
+              EXPLORE CRAFT
             </button>
           </div>
         </div>
       </div>
+
+      {/* Click bag hint badge in Stage 1 */}
+      {activeStage === 1 && (
+        <div className="absolute bottom-20 md:bottom-24 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-85 hover:opacity-100 transition-opacity">
+          <span className="px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-atelier-gold/30 text-[10px] md:text-xs font-mono uppercase tracking-widest text-atelier-gold shadow-lg flex items-center gap-1.5">
+            {isBagOpen ? 'Click bag to close' : 'Click bag to open'}
+          </span>
+        </div>
+      )}
 
       {/* STAGE 2: GRAIN & TUSCAN LEATHER DETAILS (Scroll 30-60%) */}
       <div
