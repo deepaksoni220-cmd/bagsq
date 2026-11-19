@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { ChevronRight, FolderOpen, Folder, Play, Pause, Eye } from 'lucide-react';
+import { ChevronRight, FolderOpen, Folder } from 'lucide-react';
 import { PRODUCTS } from '../data/products';
 
 const TOTAL_FRAMES = 47;
@@ -248,7 +248,7 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
             Watch the unboxing sequence unfold with instant frame precision. Release the roller buckle and explore the handcrafted interior.
           </p>
 
-          {/* Action Buttons: OPEN BAG / PLAY SEQUENCE */}
+          {/* Action Buttons: OPEN BAG */}
           <div className="flex flex-wrap items-center gap-3 md:gap-4 pointer-events-auto">
             <button
               onClick={handleToggleOpenBag}
@@ -264,18 +264,6 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
                 <FolderOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
               )}
               <span>{isBagOpen ? 'CLOSE BAG' : 'OPEN BAG'}</span>
-            </button>
-
-            <button
-              onClick={handleTogglePlay}
-              className="px-5 md:px-6 py-3 md:py-3.5 border border-atelier-border hover:border-atelier-gold/70 text-atelier-cream hover:text-atelier-gold transition-all duration-300 text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase flex items-center gap-2 backdrop-blur-sm shadow-md"
-            >
-              {isPlaying ? (
-                <Pause className="w-3.5 h-3.5" />
-              ) : (
-                <Play className="w-3.5 h-3.5" />
-              )}
-              <span>{isPlaying ? 'PAUSE' : 'PLAY SEQUENCE'}</span>
             </button>
           </div>
         </div>
