@@ -5,24 +5,24 @@ import { PRODUCTS } from '../data/products';
 
 const TOTAL_FRAMES = 47;
 
-// Color tint profiles matching each swatch
-const COLOR_PROFILES = {
-  '#955127': { filter: 'none', overlay: null }, // Original Tuscan Cognac
+// Mapping of color hex to transparent PNG paths
+const NO_BG_IMAGES = {
+  '#955127': {
+    closed: '/frames_nobg/bag_closed_cognac.png',
+    open: '/frames_nobg/bag_open_cognac.png',
+  },
   '#7b2608': {
-    filter: 'hue-rotate(-15deg) saturate(1.4) contrast(1.08)',
-    overlay: 'rgba(123, 38, 8, 0.22)',
-    blend: 'color',
-  }, // Tuscan Rust
+    closed: '/frames_nobg/bag_closed_rust.png',
+    open: '/frames_nobg/bag_open_rust.png',
+  },
   '#241b16': {
-    filter: 'saturate(0.2) brightness(0.65) contrast(1.18)',
-    overlay: 'rgba(25, 18, 14, 0.45)',
-    blend: 'multiply',
-  }, // Espresso Noir
+    closed: '/frames_nobg/bag_closed_noir.png',
+    open: '/frames_nobg/bag_open_noir.png',
+  },
   '#581c20': {
-    filter: 'hue-rotate(-35deg) saturate(1.5) brightness(0.85) contrast(1.12)',
-    overlay: 'rgba(88, 28, 32, 0.28)',
-    blend: 'color',
-  }, // Oxblood Bordeaux
+    closed: '/frames_nobg/bag_closed_oxblood.png',
+    open: '/frames_nobg/bag_open_oxblood.png',
+  },
 };
 
 export default function MainPage2({ onAddToCart, onOpenQuickView }) {
@@ -40,10 +40,11 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
   const [loadedCount, setLoadedCount] = useState(0);
 
   const imagesRef = useRef([]);
+  const noBgCacheRef = useRef({});
   const currentFrameIndexRef = useRef(0);
   const animTweenRef = useRef(null);
 
-  // Preload all frames into memory
+  // Preload all frames and transparent PNGs into memory
   useEffect(() => {
     const images = [];
     let loaded = 0;
@@ -68,6 +69,15 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
 
     imagesRef.current = images;
 
+    // Preload transparent PNG images for all colorways (closed & open states)
+    Object.entries(NO_BG_IMAGES).forEach(([hex, paths]) => {
+      const closedImg = new Image();
+      closedImg.src = paths.closed;
+      const openImg = new Image();
+      openImg.src = paths.open;
+      noBgCacheRef.current[hex] = { closed: closedImg, open: openImg };
+    });
+
     const handleResize = () => {
       renderFrame(currentFrameIndexRef.current);
     };
@@ -85,9 +95,6 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = imagesRef.current[index];
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const displayWidth = canvas.parentElement.clientWidth;
     const displayHeight = canvas.parentElement.clientHeight;
@@ -100,11 +107,29 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    // Fill background with exact studio tone matching the video frame background
+    // 1. Fill permanent studio background (NEVER shifts color when changing swatches!)
     ctx.fillStyle = '#322f26';
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
     const isMobile = displayWidth < 768;
+    const currentHex = currentColorRef.current.hex;
+
+    // 2. Select image:
+    // If at frame 0 (closed) or last frame (open), use the transparent cutout PNG in that chosen colorway!
+    // If in mid-animation, use the sequence frame with soft overlay
+    let img = null;
+    if (index === 0 && noBgCacheRef.current[currentHex]?.closed?.complete) {
+      img = noBgCacheRef.current[currentHex].closed;
+    } else if (index === TOTAL_FRAMES - 1 && noBgCacheRef.current[currentHex]?.open?.complete) {
+      img = noBgCacheRef.current[currentHex].open;
+    } else {
+      img = imagesRef.current[index];
+    }
+
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      ctx.restore();
+      return;
+    }
 
     let drawW, drawH, drawX, drawY;
 
@@ -131,26 +156,8 @@ export default function MainPage2({ onAddToCart, onOpenQuickView }) {
       drawY = (displayHeight - drawH) / 2 + 20;
     }
 
-    // Apply colorway grading if selected
-    const profile = COLOR_PROFILES[currentColorRef.current.hex] || { filter: 'none' };
-    if (profile.filter && profile.filter !== 'none') {
-      ctx.filter = profile.filter;
-    } else {
-      ctx.filter = 'none';
-    }
-
+    ctx.filter = 'none';
     ctx.drawImage(img, drawX, drawY, drawW, drawH);
-
-    // Optional tinted color blend overlay
-    if (profile.overlay && profile.blend) {
-      ctx.filter = 'none';
-      ctx.save();
-      ctx.globalCompositeOperation = profile.blend;
-      ctx.fillStyle = profile.overlay;
-      ctx.fillRect(drawX, drawY, drawW, drawH);
-      ctx.restore();
-    }
-
     ctx.restore();
   };
 
