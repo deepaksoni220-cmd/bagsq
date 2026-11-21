@@ -109,12 +109,12 @@ export default function Footer() {
               Maison
             </h4>
             <p className="text-atelier-sand/80 leading-relaxed mb-4">
-              Aurevia S.r.l.<br />
-              Via dei Tessitori 14<br />
-              50123 Firenze, Italia
+              Aurevia Pte. Ltd.<br />
+              260 Orchard Road, The Heeren<br />
+              #12-01, Singapore 238855
             </p>
             <p className="font-mono text-[11px] text-atelier-gold">
-              43° 46' 18.2" N, 11° 15' 12.4" E
+              1° 18' 14.8" N, 103° 50' 16.2" E
             </p>
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-atelier-border/60 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-atelier-muted font-mono">
           <div>
-            © AUREVIA ESPACE NOVICE FIRENZE. ALL RIGHTS RESERVED.
+            © AUREVIA ESPACE NOVICE SINGAPORE. ALL RIGHTS RESERVED.
           </div>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-atelier-cream transition-colors">TERMS OF PATRONAGE</a>

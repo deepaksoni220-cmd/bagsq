@@ -94,7 +94,7 @@ export default function Navbar({ cartCount, onOpenCart, onOpenSearch, activePage
               AUREVIA
             </span>
             <span className="hidden sm:block text-[8px] uppercase tracking-[0.4em] text-atelier-gold/80 font-mono mt-1 group-hover:text-atelier-cream transition-colors">
-              ESPACE NOVICE • FIRENZE
+              ESPACE NOVICE • SINGAPORE
             </span>
           </a>
         </div>
